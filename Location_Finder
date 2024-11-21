@@ -1,0 +1,99 @@
+#define cm 20.93
+
+void drive(long nMotorRatio, long dist, long power)
+{
+	int rotations = cm*dist;
+	resetMotorEncoder(1);
+	resetMotorEncoder(2);
+	setMotorSyncEncoder(1, 2, nMotorRatio, rotations, power); 
+}
+
+void turn90GyroLeft(long power)
+{
+	drive(100, 9, 50);
+} 
+
+void turn90GyroRight(long power)
+{
+	drive(-100, 9, 50);
+}
+
+int Count = 0;
+int SensorFlag = 0;
+int selection = 0;
+int x = 1;
+int y =4;
+
+
+task main()
+{
+	
+	SensorType[0] = sensorEV3_Color;
+	SensorType[1] = sensorEV3_Gyro;
+	
+	while(getButtonPress(buttonEnter) == 0)
+	{
+		
+		if(getButtonPress(buttonUp)==1)
+		{
+			
+			selection = 1;
+			displayTextLine(4, "Current Selection: (3, 7)");
+		}
+		else if(getButtonPress(buttonDown)==1)
+		{
+			
+			selection=2;
+			displayTextLine(4, "Current Selection: (5, 6)", selection);
+		}
+		
+	}	
+	
+	
+	
+	if(selection==1)
+	{
+		turn90GyroRight(20);
+		displayTextLine(4, "Current Location: (3, 1)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 2)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 3)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 4)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 5)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 6)");
+		sleep(1000);
+		drive(0,15,80);
+		displayTextLine(4, "Current Location: (3, 7)");
+		sleep(1000);
+		turn90GyroLeft(20);
+		sleep(1000);
+	}
+	
+	if(selection == 2)
+	{
+		
+		drive(0,15,80);
+		sleep(1000);
+		drive(0,15,80);
+		sleep(1000);	
+		drive(0,15,80);
+		sleep(1000);
+		drive(0,15,80);
+		sleep(1000);
+		turn90GyroRight(20);
+		sleep(1000);
+		drive(0,15,80);
+		sleep(1000);
+		drive(0,15,80);
+		sleep(1000);
+	}
+}
