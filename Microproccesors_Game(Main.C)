@@ -1,0 +1,381 @@
+/*DETAILS: BIRDS IN THE SKY GAME
+AUTHOR: EOIN KENNY AND JOSHUA KNOTT
+DATE: OCTOBER and NOVEMBER 2024*/
+
+//Header Files
+//
+#include <stm32f031x6.h>
+#include "display.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+//Function Signatures
+//
+void initClock(void);
+void initSysTick(void);
+void SysTick_Handler(void);
+void delay(volatile uint32_t dly);
+void setupIO();
+int isInside(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t px, uint16_t py);
+void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber);
+void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode);
+void game_Started(void);
+void menu(void);
+void End_Menu(void);
+
+
+//color information for crosshair and birds
+//
+const uint16_t CrossHair[] = { 248,248,248,248,248,248,40224,40224,40224,40224,248,248,248,248,248,248,248,248,248,248,248,40224,248,248,248,248,40224,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,40224,248,248,248,248,248,248,248,248,248,248,248,248,40224,248,40224,248,248,248,248,248,248,248,248,248,248,248,248,248,248,40224,40224,248,248,248,248,248,248,40224,40224,248,248,248,248,248,248,40224,40224,248,248,248,248,248,248,40224,40224,248,248,248,248,248,248,40224,40224,248,248,248,248,248,248,248,248,248,248,248,248,248,248,40224,248,40224,248,248,248,248,248,248,248,248,248,248,248,248,40224,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,40224,248,248,248,248,40224,248,248,248,248,248,248,248,248,248,248,248,40224,40224,40224,40224,248,248,248,248,248,248,};
+const uint16_t Bird[] = {9293,248,248,248,248,9293,54815,54815,54815,9293,248,248,9293,9293,248,248,9293,54815,54815,65535,65535,65535,9293,248,9293,54815,9293,248,9293,54815,65535,65535,0,65535,9293,248,9293,54815,54815,9293,9293,54815,65535,54815,65535,65535,24327,24327,9293,54815,54815,54815,9293,54815,65535,65535,65535,9293,248,248,9293,54815,54815,54815,54815,54815,54815,9293,9293,248,248,248,248,9293,9293,54815,54815,24327,24327,24327,24327,248,248,248,248,248,9293,54815,24327,24327,24327,24327,24327,248,248,248,9293,9293,9293,54815,24327,24327,24327,24327,248,248,248,248,54815,54815,54815,9293,24327,24327,24327,248,248,248,248,248,9293,9293,9293,248,248,248,248,248,248,248,248,248,};
+const uint16_t Cloud[] = { 248,248,248,248,248,248,248,248,248,248,248,0,0,0,0,0,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,0,0,65535,65535,65535,65535,65535,0,0,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,0,65535,65535,65535,65535,65535,65535,65535,65535,65535,0,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,248,0,65535,65535,65535,65535,65535,65535,65535,65535,65535,0,248,248,248,0,0,0,0,248,248,248,248,248,248,248,248,248,0,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,0,248,0,65535,65535,65535,65535,0,248,248,248,0,0,0,0,248,0,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,0,65535,65535,65535,65535,65535,65535,0,248,0,65535,65535,65535,65535,0,65535,30918,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,30918,65535,65535,65535,65535,65535,65535,30918,0,0,30918,65535,65535,65535,65535,65535,65535,65535,30918,65535,65535,65535,65535,65535,65535,65535,65535,30918,65535,65535,65535,65535,65535,65535,30918,30918,0,0,30918,30918,65535,65535,65535,65535,65535,65535,30918,30918,65535,65535,65535,65535,65535,65535,30918,30918,65535,65535,65535,65535,65535,30918,30918,30918,0,0,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,30918,0,248,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,248,};
+const uint16_t Sand[] = {24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,24327,16142,24327,16142,24327,16142,24327,16142,24327,16142,24327,16142,24327,16142,24327,16142,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,24327,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,22355,};
+
+//gLOBAL VARIABLES
+//
+int birdHitCounter = 0; // Counter for number of birds hit
+int BirdVisable = 1;
+uint16_t birdX = 20; // Initial bird position
+uint16_t birdY = 80;
+volatile uint32_t milliseconds;
+
+int main()
+{
+    //calling functions 
+	//
+    initClock();
+    initSysTick();
+    setupIO();
+        
+        //code for our menu
+    fillRectangle(0,0,128,160,RGBToWord(0,0,0));
+    printTextX2("BIRDS IN THE SKY", 1, 12, RGBToWord(0xff, 0xff, 0x00), 0);
+    menu();
+    game_Started();
+    
+}
+
+void menu(void)
+{
+    
+    //code for our menue
+    fillRectangle(0,0,128,160,RGBToWord(0,0,0));
+    printTextX2("BIRDS IN", 10, 12, RGBToWord(0xff, 0xff, 0x00), 0); 
+    printTextX2("THE SKY ", 10, 30, RGBToWord(0xff, 0xff, 0x00), 0); 
+    
+    while (1)
+    {
+        if((GPIOA->IDR & (1 << 8)) == 0)
+        {
+            break;
+        }
+
+        //Code that will flash in an arcade manner to make our game look nicer
+        printText("HOLD up to start",1,100,RGBToWord(0xff,0xff,0xff),0);
+        delay(500);
+        fillRectangle(0,100,150,10,RGBToWord(0,0,0));
+        delay(500);
+    }
+
+    
+}
+
+
+
+void game_Started(void)//Game start
+{	
+
+
+	//Variables
+	// 
+    int hinverted = 0;
+    int vinverted = 0;
+    int toggle = 0;
+    int hmoved = 0;
+    int vmoved = 0;
+    u_int16_t cloudx = 3;//Cordinates of Clouds
+    u_int16_t cloudy = 40;
+    uint16_t cloud2x = 20;
+    uint16_t cloud2y = 55;
+    uint16_t cloud3x =50;
+    uint16_t cloud3y = 40;
+    u_int16_t cloud4x = 78; 
+    uint16_t cloud4y = 57;
+    u_int16_t cloud5x = 95; 
+    uint16_t cloud5y = 40;
+    uint16_t x = 50;
+    uint16_t y = 50;
+    uint16_t oldx = x;	//used  to refil last positin of bird with color
+    uint16_t oldy = y;	
+    uint16_t borderHeight = 40; 
+    uint16_t stepSize = 3;  //crosshair speed
+    uint32_t start_timer = milliseconds;
+    uint32_t stop_timer = 30000;
+    
+    // Draw the border at the top and fill it with black
+	//
+    fillRectangle(0, 0, 128, borderHeight, RGBToWord(0, 0, 0)); // Full width, black
+
+    // Set the rest of the game background to blue
+    //
+    fillRectangle(0, borderHeight, 128, 160 - borderHeight, RGBToWord(0, 0, 255)); // Blue background
+
+    //Run during
+    while(1)
+    {
+        if ((milliseconds - start_timer) >= stop_timer)
+        {
+            break;
+        }
+        hmoved = vmoved = 0;
+        hinverted = vinverted = 0;
+        if ((GPIOB->IDR & (1 << 4))==0) // right pressed
+        {                    
+            if (x < 110)
+            {
+                x = x + stepSize; // Increase by step size
+                hmoved = 1;
+                hinverted = 0;
+            }                        
+        }
+        if ((GPIOB->IDR & (1 << 5))==0) // left pressed
+        {            
+            if (x > 10)
+            {
+                x = x - stepSize; // Decrease by step size
+                hmoved = 1;
+                hinverted = 1;
+            }            
+        }
+        if ((GPIOA->IDR & (1 << 11)) == 0) // down pressed
+        {
+            if (y < 140)
+            {
+                y = y + stepSize; // Increase by step size
+                vmoved = 1;
+                vinverted = 0;
+            }
+        }
+        if ((GPIOA->IDR & (1 << 8)) == 0) // up pressed
+        {            
+            if (y > borderHeight + 1) // Prevent crosshair from going into the border area
+            {
+                y = y - stepSize; // Decrease by step size
+                vmoved = 1;
+                vinverted = 1;
+            }
+        }
+        if ((vmoved) || (hmoved))
+        {
+            // only redraw if there has been some movement (reduces flicker)
+            //
+            fillRectangle(oldx, oldy, 16, 16, RGBToWord(0, 0, 255)); // Clear with blue background
+            oldx = x;
+            oldy = y;                    
+            if (hmoved)
+            {
+                putImage(x, y, 16, 16, CrossHair, hinverted, 0);
+                toggle = toggle ^ 1;
+            }
+            else
+            {
+                putImage(x, y, 16, 16, CrossHair, 0, vinverted);
+            }
+
+            // Calculate the center of the crosshair
+            //
+            uint16_t crosshair_center_x = x + 8; // Assuming crosshair width (w) is 16, so 8 is half
+            uint16_t crosshair_center_y = y + 8; // Assuming crosshair height (h) is 16, so 8 is half
+
+            // Check if the center of the crosshair is inside the bird's area
+            //
+            if (isInside(birdX, birdY, 12, 11, crosshair_center_x, crosshair_center_y) && BirdVisable)
+            {
+                BirdVisable = 0; // Bird is now invisible after being hit
+                birdHitCounter++; // Increment bird hit counter
+
+                fillRectangle(birdX, birdY, 12, 11, RGBToWord(0, 0, 255));
+
+                // Generate new random position for the bird, avoiding the border area
+                //
+                birdX = (rand() % (110 - 10 + 1)) + 10; // X between 10 and 110
+                birdY = (rand() % (140 - (borderHeight + 1) + 1)) + (borderHeight + 1); // Y between borderHeight and 140
+
+                BirdVisable = 1; // Make the bird visible again at the new location
+            }
+        }
+
+        // Draw the bird only if it is still visible
+        //
+        if (BirdVisable)
+        {
+            putImage(birdX, birdY, 12, 11, Bird, 0, 0);
+        }
+
+        // Display the bird hit counter on the screen
+        //
+        char counterText[10];
+        sprintf(counterText, "Hits: %d", birdHitCounter);
+        printTextX2(counterText, 10, 5, RGBToWord(0xff, 0xff, 0xff), 0);
+
+        //Code to display the clouds
+        //
+        putImage(cloud2x, cloud2y, 28, 11, Cloud, 0, 0);
+        putImage(cloudx, cloudy, 28, 11, Cloud, 0, 0);
+        putImage(cloud3x, cloud3y, 28, 11, Cloud, 0, 0);
+        putImage(cloud4x, cloud4y, 28, 11, Cloud, 0, 0);
+        putImage(cloud5x, cloud5y, 28, 11, Cloud, 0, 0);
+
+        //for loop that prints the sand accross the bottom of the screen
+        //
+        for (int x = 0; x <= 112; x += 16) 
+        { 
+            putImage(x, 155, 16, 5, Sand, 0, 0);
+        }
+    
+
+
+    } 
+
+    //after 30 seconds the end menue function is called
+    //
+    End_Menu();
+
+}
+
+
+void End_Menu(void)
+{
+
+    //variable to store score text
+    //
+    char scoreText[20];  
+
+    //code to display game over and score to the user
+    //
+    fillRectangle(0, 0, 128, 160, RGBToWord(0, 0, 0)); 
+    printTextX2("GAME OVER!", 10, 12, RGBToWord(0xff, 0xff, 0x00), 0); 
+    printTextX2("SCORE ", 10, 35, RGBToWord(0xff, 0xff, 0x00), 0); 
+    
+    //code to print the score
+    snprintf(scoreText, sizeof(scoreText), "%d", birdHitCounter);  
+    printTextX2(scoreText, 72, 36, RGBToWord(0xff, 0xff, 0x00), 0);  
+
+    //if up is pressed
+    //
+    while (1)
+    {
+        if((GPIOA->IDR & (1 << 8)) == 0)
+        {
+            //inatlizse bird hit counter to 0 
+            //
+            birdHitCounter = 0;
+            game_Started();
+
+        }
+
+        //Code that will flash in an arcade manner to make our game look nicer
+        //
+        printText("HOLD up to restart",1,100,RGBToWord(0xff,0xff,0xff),0);
+        delay(500);
+        fillRectangle(0,100,150,10,RGBToWord(0,0,0));
+        delay(500);
+
+    }
+
+    
+}
+
+void initSysTick(void)
+{
+	SysTick->LOAD = 48000;
+	SysTick->CTRL = 7;
+	SysTick->VAL = 10;
+	__asm(" cpsie i "); // enable interrupts
+}
+void SysTick_Handler(void)
+{
+	milliseconds++;
+}
+void initClock(void)
+{
+        // This is potentially a dangerous function as it could
+        // result in a system with an invalid clock signal - result: a stuck system
+        // Set the PLL up
+        // First ensure PLL is disabled
+        RCC->CR &= ~(1u<<24);
+        while( (RCC->CR & (1 <<25))); // wait for PLL ready to be cleared
+        
+        // Warning here: if system clock is greater than 24MHz then wait-state(s) need to be
+        // inserted into Flash memory interface
+				
+        FLASH->ACR |= (1 << 0);
+        FLASH->ACR &=~((1u << 2) | (1u<<1));
+        // Turn on FLASH prefetch buffer
+        FLASH->ACR |= (1 << 4);
+        // set PLL multiplier to 12 (yielding 48MHz)
+        RCC->CFGR &= ~((1u<<21) | (1u<<20) | (1u<<19) | (1u<<18));
+        RCC->CFGR |= ((1<<21) | (1<<19) ); 
+
+        // Need to limit ADC clock to below 14MHz so will change ADC prescaler to 4
+        RCC->CFGR |= (1<<14);
+
+        // and turn the PLL back on again
+        RCC->CR |= (1<<24);        
+        // set PLL as system clock source 
+        RCC->CFGR |= (1<<1);
+}
+void delay(volatile uint32_t dly)
+{
+	    uint32_t end_time = dly + milliseconds;
+	    while(milliseconds != end_time)
+	    __asm(" wfi "); // sleep
+}
+
+void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber)
+{
+	Port->PUPDR = Port->PUPDR &~(3u << BitNumber*2); // clear pull-up resistor bits
+	Port->PUPDR = Port->PUPDR | (1u << BitNumber*2); // set pull-up bit
+}
+void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode)
+{
+	/*
+	*/
+	uint32_t mode_value = Port->MODER;
+	Mode = Mode << (2 * BitNumber);
+	mode_value = mode_value & ~(3u << (BitNumber * 2));
+	mode_value = mode_value | Mode;
+	Port->MODER = mode_value;
+}
+
+
+int isInside(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t px, uint16_t py)
+{
+	// checks to see if point px,py is within the rectange defined by x,y,w,h
+	uint16_t x2,y2;
+	x2 = x1+w;
+	y2 = y1+h;
+	int rvalue = 0;
+	if ( (px >= x1) && (px <= x2))
+	{
+		// ok, x constraint met
+		if ( (py >= y1) && (py <= y2))
+			rvalue = 1;
+	}
+	return rvalue;
+}
+
+void setupIO()
+{
+	RCC->AHBENR |= (1 << 18) + (1 << 17); // enable Ports A and B
+	display_begin();
+	pinMode(GPIOB,4,0);
+	pinMode(GPIOB,5,0);
+	pinMode(GPIOA,8,0);
+	pinMode(GPIOA,11,0);
+	enablePullUp(GPIOB,4);
+	enablePullUp(GPIOB,5);
+	enablePullUp(GPIOA,11);
+	enablePullUp(GPIOA,8);
+}
+
